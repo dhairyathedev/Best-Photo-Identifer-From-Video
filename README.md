@@ -1,5 +1,5 @@
-# Best Photo Identifier From Video
----
+![Banner Image](https://github.com/dhairyathedev/Best-Photo-Identifer-From-Video/assets/65452005/aec04b50-684c-4796-950f-adfc6c6ee7df)
+
 
 ### Introduction
 This project deals with the problem of getting the best frame of a video. It uses advance machine learning models and neural neural networks to identify the best frame from a video. The project is implemented in Python and uses OpenCV, Keras, and TensorFlow libraries.
