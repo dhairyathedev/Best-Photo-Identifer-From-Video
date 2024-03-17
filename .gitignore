@@ -1,0 +1,8 @@
+*.bak*
+*.mp4
+*.jpg
+*.keras
+dt/
+.DS_Store
+frames/
+flagged/
