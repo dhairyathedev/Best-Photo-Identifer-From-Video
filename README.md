@@ -32,6 +32,6 @@ This will boot up a gradio application. You can upload a video and get the best 
 - [FER-2013](https://www.kaggle.com/datasets/msambare/fer2013)
 
 ### Contributors
-- Sneh Shah (Model Training and Preprocessing)
-- Pankil Soni (Mode Training and Preprocessing)
+- Sneh Shah (Model Training and Fine-tuning)
+- Pankil Soni (Mode Training and Fine-tuning)
 - Dhairya Shah (Model Training and Deployment)
