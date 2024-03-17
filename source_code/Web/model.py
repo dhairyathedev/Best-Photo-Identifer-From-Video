@@ -11,8 +11,8 @@ import tensorflow as tf
 print(tf.__version__)
 
 # Load models
-model_emotion = load_model(r"face_emotion.h5")
-attractive_model = load_model('model2.h5')
+model_emotion = load_model(r"face_emotion.h5") # Change your model name here
+attractive_model = load_model('model2.h5') # Change your model name here
 
 def calculate_exposure(image):
     # Convert image to grayscale
