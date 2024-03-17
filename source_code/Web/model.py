@@ -85,7 +85,7 @@ def process_video(video_path):
             ret, frame = video_capture.read()
             if not ret:
                 break
-            if i % 5 == 0:
+            if i % 7 == 0:
                 frames.append(frame)
             i += 1
         video_capture.release()
@@ -222,7 +222,7 @@ def process_video(video_path):
         if len(final) >5:
             break
         threshold-=0.05
-    rgb_frames = [cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) for frame in final]
+    rgb_frames = [cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) for frame in final[:5]]
 
     return rgb_frames
 
