@@ -79,79 +79,79 @@ def process_video(video_path):
     attractive_scores = []
     face_blur_scores = []
 
-    while video_capture.isOpened():
-        ret, frame = video_capture.read()
-        if not ret:
-            break
-        if i % 5 == 0:
-            frames.append(frame)
-        i += 1
-    video_capture.release()
+    def make_frames(video_capture):
+        i = 0
+        while video_capture.isOpened():
+            ret, frame = video_capture.read()
+            if not ret:
+                break
+            if i % 5 == 0:
+                frames.append(frame)
+            i += 1
+        video_capture.release()
 
-    # Loop through each frame of the video
-    for frame in frames:
-        # Detect faces in the frame
-        faces = face_cascade.detectMultiScale(
-            frame, scaleFactor=1.3, minNeighbors=5)
-        # Iterate through each detected face
-        if len(faces) > 1:
-            happy_score = 0
-            score=0
-            attr_score = 0
-            blur_score = 0
-            for (x, y, w, h) in faces:
-                face_roi = frame[y:y+h, x:x+w]
-                model_input = np.expand_dims(face_roi, axis=0)
-                img_features = extract_features(face_roi)
-                prediction = model_emotion.predict(img_features)
-                outputlabel = labels[np.argmax(prediction)]
-                print("Emotion: ", outputlabel)
-                if outputlabel == 'happy':
-                    happy_score+=prediction[0][3]
-                    score+=1
-                    img_attrac = preprocess_image_for_attractive(face_roi)
-                    attractive_prediction = attractive_model.predict(img_attrac)
-                    attr_score = attractive_prediction[0][0]
-                    blur_score = attractive_prediction[0][1]
-            if(score/len(faces)>0.5):
-                happy_score/=len(faces)
-                happy_frames.append(frame)
-                print("Happy Score: ", happy_score)
-                happy_scores.append(happy_score)
-                attractive_scores.append(attr_score/len(faces))
-                face_blur_scores.append(blur_score/len(faces))
-            else:
-                continue
-        else:
-            for (x, y, w, h) in faces:
-                # Extract face ROI
-                face_roi = frame[y:y+h, x:x+w]
-                model_input = np.expand_dims(face_roi, axis=0)
-                img_features = extract_features(face_roi)
-                prediction = model_emotion.predict(img_features)
-                outputlabel = labels[np.argmax(prediction)]
-                print("Emotion: ", outputlabel)
-                if outputlabel == 'happy':
-                    happy_score = prediction[0][3]
+    make_frames(video_capture)
+    def store_frame_based_on_emotion(emotion: str):
+        # Loop through each frame of the video
+        for frame in frames:
+            # Detect faces in the frame
+            faces = face_cascade.detectMultiScale(
+                frame, scaleFactor=1.3, minNeighbors=5)
+            # Iterate through each detected face
+            if len(faces) > 1:
+                happy_score = 0
+                score=0
+                attr_score = 0
+                blur_score = 0
+                for (x, y, w, h) in faces:
+                    face_roi = frame[y:y+h, x:x+w]
+                    img_features = extract_features(face_roi)
+                    prediction = model_emotion.predict(img_features)
+                    outputlabel = labels[np.argmax(prediction)]
+                    if outputlabel == emotion:
+                        happy_score+=prediction[0][3]
+                        score+=1
+                        img_attrac = preprocess_image_for_attractive(face_roi)
+                        attractive_prediction = attractive_model.predict(img_attrac)
+                        attr_score = attractive_prediction[0][0]
+                        blur_score = attractive_prediction[0][1]
+                if(score/len(faces)>0.5):
+                    happy_score/=len(faces)
                     happy_frames.append(frame)
                     print("Happy Score: ", happy_score)
                     happy_scores.append(happy_score)
-                    img_attrac = preprocess_image_for_attractive(face_roi)
-                    attractive_prediction = attractive_model.predict(img_attrac)
-                    attractive_scores.append(attractive_prediction[0][0])
-                    face_blur_scores.append(attractive_prediction[0][1])
+                    attractive_scores.append(attr_score/len(faces))
+                    face_blur_scores.append(blur_score/len(faces))
+                else:
+                    continue
+            else:
+                for (x, y, w, h) in faces:
+                    # Extract face ROI
+                    face_roi = frame[y:y+h, x:x+w]
+                    img_features = extract_features(face_roi)
+                    prediction = model_emotion.predict(img_features)
+                    outputlabel = labels[np.argmax(prediction)]
+                    if outputlabel == emotion:
+                        happy_score = prediction[0][3]
+                        happy_frames.append(frame)
+                        happy_scores.append(happy_score)
+                        img_attrac = preprocess_image_for_attractive(face_roi)
+                        attractive_prediction = attractive_model.predict(img_attrac)
+                        attractive_scores.append(attractive_prediction[0][0])
+                        face_blur_scores.append(attractive_prediction[0][1])
+
+    store_frame_based_on_emotion('happy')
+    if len(happy_frames) < 20:
+        store_frame_based_on_emotion('neutral')
 
     blur_scores = []
     clarity_scores = []
     exposure_scores = []
 
     for frame in happy_frames:
-        blur_score = get_blurrness_score(frame)
-        clarity_score = calculate_clarity(frame)
-        exposure_score = calculate_exposure(frame)
-        exposure_scores.append(exposure_score)
-        clarity_scores.append(clarity_score)
-        blur_scores.append(blur_score)
+        exposure_scores.append(calculate_exposure(frame))
+        clarity_scores.append(calculate_clarity(frame))
+        blur_scores.append(get_blurrness_score(frame))
 
     frame_zip = zip(happy_frames,attractive_scores,face_blur_scores,blur_scores, clarity_scores, exposure_scores, happy_scores)
     frame_zip = sorted(frame_zip, key=lambda x: (x[2],-x[1], x[3], -x[4]))
@@ -163,18 +163,66 @@ def process_video(video_path):
     happy_frames = [x[0] for x in happy_zip[:20]]
 
 
-    print("Frames with highest happy scores: ", len(happy_frames))
+    if len(happy_frames) < 20:
+        # include neutral frames
+        for frame in frames:
+            faces = face_cascade.detectMultiScale(
+                frame, scaleFactor=1.3, minNeighbors=5)
+            for (x, y, w, h) in faces:
+                face_roi = frame[y:y+h, x:x+w]
+                model_input = np.expand_dims(face_roi, axis=0)
+                img_features = extract_features(face_roi)
+                prediction = model_emotion.predict(img_features)
+                outputlabel = labels[np.argmax(prediction)]
+                print("Emotion: ", outputlabel)
+                if outputlabel == 'neutral':
+                    happy_score = prediction[0][4]
+                    happy_frames.append(frame)
+                    print("Neutral Score: ", happy_score)
+                    happy_scores.append(happy_score)
+                    img_attrac = preprocess_image_for_attractive(face_roi)
+                    attractive_prediction = attractive_model.predict(img_attrac)
+                    attractive_scores.append(attractive_prediction[0][0])
+                    face_blur_scores.append(attractive_prediction[0][1])
+            if len(happy_frames) >= 20:
+                break
 
-    for frame in happy_frames:
-        img_attrac = preprocess_image_for_attractive(frame)
-        attractive_prediction = attractive_model.predict(img_attrac)
-        attractive_scores.append(attractive_prediction[0][0])
 
-    # get top 10 frames with highest attractive scores
-    frame_zip = zip(happy_frames, attractive_scores)
-    frame_zip = sorted(frame_zip, key=lambda x: -x[1])
-    happy_frames = [x[0] for x in frame_zip[:5]]
-    rgb_frames = [cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) for frame in happy_frames]
+    def compare_images(im1, im2,threshold):
+        diff = cv2.subtract(im1, im2)
+        diff = diff > 0
+        diff = diff.astype(int)
+        pixels = 1
+        for pix in im1.shape:
+            pixels = pix * pixels
+        diff = diff.sum() / pixels
+        print(diff)
+        if diff > threshold:
+            return False
+        else:
+            return True
+
+    print(len(happy_frames))
+    def remove_similar_images(image_array, threshold):
+        unique_images = [image_array[0]]  # Start with the first image
+        for img in image_array[1:]:
+            is_unique = True
+            for unique_img in unique_images:
+                if compare_images(img, unique_img, threshold):
+                    is_unique = False
+                    break
+            if is_unique:
+                unique_images.append(img)
+        return unique_images
+
+    final = []
+    threshold = 0.5
+    while len(final) < 5:
+        final = remove_similar_images(happy_frames, threshold)
+        if len(final) >5:
+            break
+        threshold-=0.05
+    rgb_frames = [cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) for frame in final]
 
     return rgb_frames
 
